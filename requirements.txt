@@ -1,4 +1,6 @@
 numpy
 scipy
 matplotlib
+coco-experiment
+cma
 pytest

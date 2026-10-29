@@ -41,6 +41,12 @@ LOG_ERR_LOW, LOG_ERR_HIGH = -8.0, 2.0
 SUCCESS_ERROR = 1e-8
 DEFAULT_BUDGET_PER_DIM = 1000
 
+# Problem instances (i.e. optimum shifts) are split so that nothing the LLM loop
+# trains on is ever used to report final results.
+TRAIN_INSTANCES = (1, 2, 3)
+TEST_INSTANCES = tuple(range(4, 19))
+assert not set(TRAIN_INSTANCES) & set(TEST_INSTANCES), "train and test instances must be disjoint"
+
 
 class BudgetExhausted(BaseException):
     """Raised when an optimizer calls func after its budget is spent.
@@ -51,7 +57,12 @@ class BudgetExhausted(BaseException):
 
 
 class CountingFunction:
-    """Wraps a Problem: counts calls, enforces the budget, records best-so-far."""
+    """Wraps a Problem: counts calls, enforces the budget, records best-so-far.
+
+    Never hand this object to an optimizer: its attributes (the problem, the
+    call counter) would let it read the optimum or reset the budget. ``score``
+    gives optimizers a plain function that calls it instead.
+    """
 
     def __init__(self, problem: Problem, budget: int):
         self.problem = problem
@@ -152,11 +163,15 @@ def score(
     random.seed(seed)
     np.random.seed(seed)
     counted = CountingFunction(problem, budget)
+
+    def func(x):
+        return counted(x)
+
     ok, err, reported = True, None, None
 
     t0 = time.perf_counter()
     try:
-        out = optimizer(counted, dim, problem.bounds, budget)
+        out = optimizer(func, dim, problem.bounds, budget)
         if not (isinstance(out, (tuple, list)) and len(out) == 3):
             raise TypeError(f"optimize must return (best_x, best_f, history), got {type(out).__name__}")
         reported = float(out[1])
@@ -166,7 +181,13 @@ def score(
         ok, err = False, traceback.format_exc()
     runtime = time.perf_counter() - t0
 
-    history = counted.trace[: counted.evals] - problem.f_opt
+    # The recorder is out of the optimizer's reach, but check it anyway: a run
+    # that somehow overran the budget or rewrote its history doesn't count.
+    trace = counted.trace[: counted.evals]
+    if ok and (counted.evals > budget or np.any(np.diff(trace) > 0)):
+        ok, err = False, "policy violation: the evaluation record was tampered with"
+
+    history = trace - problem.f_opt
     best_error = float(history[-1]) if counted.evals else math.inf
     return RunResult(
         function=problem.name,
@@ -257,13 +278,21 @@ def run_suite(
     n_runs: int = 10,
     budget_per_dim: int = DEFAULT_BUDGET_PER_DIM,
     first_seed: int = 0,
+    instances: Sequence[int] = TEST_INSTANCES,
 ) -> SuiteResult:
-    """Score ``optimizer`` on every function x dim, ``n_runs`` seeds each, in this process."""
+    """Score ``optimizer`` on every function x dim, ``n_runs`` runs each, in this process.
+
+    Run k uses seed ``first_seed + k`` and cycles through ``instances``. The
+    default is the test instances; the LLM loop's training fitness passes
+    TRAIN_INSTANCES (see fitness.py).
+    """
+    if not instances:
+        raise ValueError("instances must not be empty")
     runs = [
-        score(optimizer, fn, dim, budget_per_dim * dim, seed)
+        score(optimizer, fn, dim, budget_per_dim * dim, first_seed + k, instance=instances[k % len(instances)])
         for fn in functions
         for dim in dims
-        for seed in range(first_seed, first_seed + n_runs)
+        for k in range(n_runs)
     ]
     return SuiteResult(name, runs)
 
