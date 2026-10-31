@@ -32,10 +32,23 @@ Rules the harness enforces:
 - **Train/test split.** The LLM loop only ever sees training instances (`TRAIN_INSTANCES`); final results use the disjoint `TEST_INSTANCES`.
 - Evaluating outside the bounds is allowed but counted (`out_of_bounds`).
 
+Code rules, checked statically before the code runs (`algogenesis/code_audit.py`):
+
+- **Rejected** (fitness 0, with the reason in `result.error`):
+  - imports other than `numpy`, `math`, `random` and harmless standard-library helpers (`functools`, `itertools`, `collections`, `heapq`, `typing`, ...); `scipy`, `os`, `sys`, `inspect` and the like are refused
+  - `getattr`, `setattr`, `vars`, `globals`, `eval`, `exec`, `compile`, `open`, `__import__`
+  - function or frame internals such as `.__closure__`, `.__globals__`, `.__subclasses__`, `.cell_contents`
+  - numpy file I/O (`np.save`, `np.load`, `.tofile`, ...)
+- **Flagged** (allowed, but recorded in `result.flags` for the exploit audit):
+  - bare `except:` or `except BaseException`
+  - reseeding the RNG (`np.random.seed(...)`, `default_rng(42)`)
+  - hard-coded ±5 / ±5.12 bounds in `uniform()` or `clip()` instead of using `bounds`
+
 ## Scoring LLM-generated code (for the loop)
 
-Use `training_fitness`. It is the one call the loop makes, so the training
-suite can change (to BBOB at the fitness freeze) without touching the loop:
+Use `training_fitness`. It is the one call the loop makes. The training suite
+is **frozen** (31 Oct 2026): all 24 BBOB functions in 5-D, instances 1-3, one
+seed each, 2000 x dim = 10,000 evaluations per run, 300 s per candidate.
 
 ```python
 from algogenesis.fitness import training_fitness
@@ -46,6 +59,7 @@ if __name__ == "__main__":          # required on Windows
     result.error       # traceback / "timed out" if the code couldn't run, else None
     result.summary()   # per-function stats: mean/median/best error, success rate, runtime
     result.runs        # every run, incl. .history (best-so-far error per evaluation)
+    result.flags       # static-audit flags (log these)
 ```
 
 `evaluate_code` runs the code in a separate process with a time limit, so syntax errors, crashes and infinite loops come back as `error` instead of killing your loop. It is not a security sandbox.

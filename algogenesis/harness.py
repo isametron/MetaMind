@@ -33,6 +33,7 @@ from typing import Callable, Sequence
 import numpy as np
 
 from .benchmarks import Problem, make_problem
+from .code_audit import audit_code
 
 Optimizer = Callable[..., tuple]
 
@@ -153,7 +154,7 @@ def score(
     ``instance`` defaults to ``seed + 1``, so each seed also gets a differently
     shifted optimum. Pass ``instance=0`` for the canonical unshifted function.
     """
-    if isinstance(function, Problem):
+    if not isinstance(function, str):  # an already-built problem (classic or BBOB)
         problem = function
     else:
         problem = make_problem(function, dim, seed + 1 if instance is None else instance)
@@ -216,6 +217,7 @@ class SuiteResult:
     name: str
     runs: list[RunResult]
     error: str | None = None  # set when the candidate could not run at all (bad code, timeout)
+    flags: list[str] = field(default_factory=list)  # static-audit flags (allowed, but recorded)
 
     @property
     def fitness(self) -> float:
@@ -262,7 +264,7 @@ class SuiteResult:
                 "history_evals": [int(i) + 1 for i in idx],
                 "history_error": [float(r.history[i]) for i in idx],
             })
-        return {"name": self.name, "fitness": self.fitness, "error": self.error,
+        return {"name": self.name, "fitness": self.fitness, "error": self.error, "flags": self.flags,
                 "summary": self.summary(), "runs": runs}
 
     def save_json(self, path: str | Path, history_points: int = 200) -> None:
@@ -300,7 +302,13 @@ def run_suite(
 # --- Running LLM-generated code -------------------------------------------------
 
 def load_optimizer(code: str) -> Optimizer:
-    """Execute candidate source code and return its ``optimize`` function."""
+    """Audit and execute candidate source code, and return its ``optimize`` function.
+
+    Raises SyntaxError if it doesn't parse and ValueError if it breaks a rule.
+    """
+    audit = audit_code(code)
+    if not audit.ok:
+        raise ValueError("policy violation:\n" + "\n".join(audit.violations))
     namespace: dict = {"__name__": "candidate"}
     exec(compile(code, "<candidate>", "exec"), namespace)
     fn = namespace.get("optimize")
@@ -317,7 +325,9 @@ def load_optimizer(code: str) -> Optimizer:
 
 def _suite_worker(code: str, name: str, kwargs: dict, out: mp.Queue) -> None:
     try:
-        out.put(("ok", run_suite(load_optimizer(code), name=name, **kwargs)))
+        suite = run_suite(load_optimizer(code), name=name, **kwargs)
+        suite.flags = audit_code(code).flags
+        out.put(("ok", suite))
     except BaseException:
         out.put(("error", traceback.format_exc()))
 

@@ -1,4 +1,4 @@
-"""The training fitness the LLM loop optimises.
+"""The training fitness the LLM loop optimises. FROZEN at G1 (Sat 31 Oct 2026).
 
     from algogenesis.fitness import training_fitness
 
@@ -8,22 +8,23 @@
         result.error      # traceback / timeout message, or None
         result.summary()  # per-function numbers for the feedback prompt
 
-This is the only call the loop should make, so the evaluation can change
-without touching the loop. It only ever uses TRAIN_INSTANCES; final results
-are reported on the disjoint TEST_INSTANCES.
+This is the only call the loop should make. It only ever uses TRAIN_INSTANCES;
+final results are reported on the disjoint TEST_INSTANCES, in more dimensions.
 
-PROVISIONAL until the fitness freeze (G1, Sat 31 Oct 12:00): shifted Sphere
-and Rastrigin in 10-D. At G1 this switches to BBOB f1-f24 in 5-D with a budget
-of 2000 x dim; the call stays the same.
+Training suite (matches LLaMEA's setup): all 24 BBOB functions in 5-D,
+instances 1-3 with one seed each (72 runs per candidate), budget 2000 x dim =
+10,000 evaluations per run, 300 s limit per candidate. PSO takes about 5 s.
+Do not change these settings after the LLM runs start.
 """
+from .bbob import BBOB_FUNCTIONS
 from .harness import TRAIN_INSTANCES, SuiteResult, evaluate_code
 
 TRAINING_SUITE = dict(
-    functions=("sphere", "rastrigin"),
-    dims=(10,),
+    functions=BBOB_FUNCTIONS,
+    dims=(5,),
     instances=TRAIN_INSTANCES,
     n_runs=len(TRAIN_INSTANCES),  # one seed per training instance
-    budget_per_dim=1000,
+    budget_per_dim=2000,
 )
 
 

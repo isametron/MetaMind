@@ -88,6 +88,10 @@ class Problem:
 
 
 def make_problem(name: str, dim: int, instance: int = 1) -> Problem:
+    """Build a problem by name: a classic benchmark above, or a BBOB function ('bbob_f1' ... 'bbob_f24')."""
+    if name.startswith("bbob_"):
+        from .bbob import make_bbob_problem
+        return make_bbob_problem(name, dim, instance)
     try:
         benchmark = BENCHMARKS[name]
     except KeyError:

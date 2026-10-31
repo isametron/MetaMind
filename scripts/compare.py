@@ -24,6 +24,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from algogenesis.baselines import BASELINES  # noqa: E402
+from algogenesis.bbob import BBOB_FUNCTIONS  # noqa: E402
 from algogenesis.benchmarks import BENCHMARKS  # noqa: E402
 from algogenesis.harness import evaluate_code, run_suite  # noqa: E402
 from algogenesis.report import (  # noqa: E402
@@ -36,7 +37,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--candidates", nargs="*", type=Path, default=[], help="LLM-found algorithm files")
     parser.add_argument("--baselines", nargs="*", default=list(BASELINES), choices=list(BASELINES))
-    parser.add_argument("--functions", nargs="+", default=list(BENCHMARKS), choices=list(BENCHMARKS))
+    parser.add_argument("--functions", nargs="+", default=list(BENCHMARKS),
+                        choices=list(BENCHMARKS) + list(BBOB_FUNCTIONS))
     parser.add_argument("--dims", nargs="+", type=int, default=[10, 30])
     parser.add_argument("--runs", type=int, default=30)
     parser.add_argument("--budget-per-dim", type=int, default=1000)
