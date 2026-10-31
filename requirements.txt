@@ -4,3 +4,4 @@ matplotlib
 coco-experiment
 cma
 pytest
+openai
