@@ -1,0 +1,120 @@
+name: LLM runs
+
+# Runs the LLaMEA experiment queues, one job per model, every 6 hours.
+# Logs (results/llm_runs/) and best programs (found/) live on the `llm-runs`
+# branch; code comes from the branch this workflow runs on (main).
+# Everything is resumable, so each fire just carries on where the last stopped.
+#
+# Manual test, no keys needed: Actions > LLM runs > Run workflow > tick "fake".
+# Scheduled runs only fire for the default branch, so merge this file to main.
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+    inputs:
+      fake:
+        description: "Use the fake provider (no keys): 1 run per arm, for testing the plumbing"
+        type: boolean
+        default: false
+      calls:
+        description: "Calls per run in fake mode"
+        type: string
+        default: "2"
+
+permissions:
+  contents: write
+
+jobs:
+  init:
+    # Creates the llm-runs branch once, so the matrix jobs below never race to create it.
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create llm-runs branch if missing
+        run: |
+          git config user.name "llm-runs bot"
+          git config user.email "llm-runs-bot@users.noreply.github.com"
+          if git ls-remote --exit-code --heads origin llm-runs >/dev/null 2>&1; then
+            echo "llm-runs already exists"
+            exit 0
+          fi
+          git checkout --orphan llm-runs
+          git rm -rf --quiet .
+          printf '# llm-runs\n\nLogs (results/llm_runs/) and best programs (found/) written by the llm-runs workflow.\n' > README.md
+          git add README.md
+          git commit -m "Initialise llm-runs branch"
+          git push origin llm-runs
+
+  run:
+    needs: init
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - model: qwen-3.8-27b
+            provider: cerebras
+            queue: "A:5,B:5"
+          - model: gpt-oss-120b
+            provider: cerebras
+            queue: "A:5,B:5"
+          - model: openai/gpt-oss-20b
+            provider: groq
+            queue: "A:3"
+    concurrency:
+      group: llm-runs-${{ matrix.provider }}-${{ matrix.model }}
+      cancel-in-progress: false
+    env:
+      CEREBRAS_API_KEY: ${{ secrets.CEREBRAS_API_KEY }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      MODEL: ${{ matrix.model }}
+      PROVIDER: ${{ inputs.fake && 'fake' || matrix.provider }}
+      QUEUE: ${{ inputs.fake && 'A:1,B:1' || matrix.queue }}
+      CALLS: ${{ inputs.fake && inputs.calls || '50' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Check out the logs from llm-runs
+        run: |
+          git fetch origin llm-runs
+          git worktree add -B llm-runs llm-data origin/llm-runs
+
+      - name: Run this model's queue
+        run: |
+          python scripts/run_queue.py \
+            --provider "$PROVIDER" --model "$MODEL" --queue "$QUEUE" \
+            --calls "$CALLS" --stop-after-minutes 330 --data-dir llm-data
+
+      - name: Commit logs and found/ to llm-runs
+        if: always()
+        working-directory: llm-data
+        run: |
+          git config user.name "llm-runs bot"
+          git config user.email "llm-runs-bot@users.noreply.github.com"
+          git add results found
+          if git diff --cached --quiet; then
+            echo "nothing new to commit"
+            exit 0
+          fi
+          git commit -m "llm-runs: $MODEL ($PROVIDER) $(date -u +%Y-%m-%dT%H:%MZ)"
+          # the three model jobs push to the same branch, so rebase and retry on a race
+          for attempt in 1 2 3 4 5 6; do
+            git fetch origin llm-runs
+            if git rebase origin/llm-runs && git push origin HEAD:llm-runs; then
+              exit 0
+            fi
+            git rebase --abort 2>/dev/null || true
+            sleep $((RANDOM % 10 + 5))
+          done
+          echo "could not push after 6 attempts" >&2
+          exit 1
