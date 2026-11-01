@@ -149,14 +149,16 @@ def test_refuses_to_resume_from_a_different_model(tmp_path, monkeypatch):
 
 def test_daily_cap_stops_with_margin(tmp_path, monkeypatch):
     monkeypatch.setattr(run_llm, "score_code", _fake_scorer([0.1] * 50))
-    # the fake provider uses ~510 tokens per arm-B call; cap 2000 -> stop once used + 510 > 1900
+    # arm-B calls all cost the same (it depends on the prompt length); cap 2000 -> stop once
+    # used + per_call > 1900
     status = run_llm.run("fake", "m", "B", 1, calls=50, data_dir=tmp_path, daily_cap=2000)
     rows = run_llm.read_log(run_llm.log_path(tmp_path, "fake", "m", "B", 1))
+    per_call = rows[0]["tokens"]["prompt"] + rows[0]["tokens"]["completion"]
     used = sum(r["tokens"]["prompt"] + r["tokens"]["completion"] for r in rows)
-    assert status == "cap" and used <= 0.95 * 2000 and len(rows) == 3
+    assert status == "cap" and used <= 0.95 * 2000 < used + per_call
     # a second invocation the same UTC day sees the ledger and stops immediately
     assert run_llm.run("fake", "m", "B", 1, calls=50, data_dir=tmp_path, daily_cap=2000) == "cap"
-    assert len(run_llm.read_log(run_llm.log_path(tmp_path, "fake", "m", "B", 1))) == 3
+    assert len(run_llm.read_log(run_llm.log_path(tmp_path, "fake", "m", "B", 1))) == len(rows)
 
 
 def test_ledger_ignores_yesterday(tmp_path, monkeypatch):

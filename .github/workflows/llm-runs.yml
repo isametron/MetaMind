@@ -61,9 +61,7 @@ jobs:
           - model: gpt-oss-120b
             provider: cerebras
             queue: "A:5,B:5"
-          - model: openai/gpt-oss-20b
-            provider: groq
-            queue: "A:3"
+          # Groq (openai/gpt-oss-20b, queue "A:3") is off: Om's account must not be billed.
     concurrency:
       group: llm-runs-${{ matrix.provider }}-${{ matrix.model }}
       cancel-in-progress: false
