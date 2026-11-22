@@ -41,6 +41,8 @@ The harness measures it the same way whatever its source. See [INTERFACE.md](INT
 
 ## Layout
 
+The Python package is named `algogenesis`, the project's working name; the project and repository are MetaMind.
+
 | Path | What it is |
 |---|---|
 | `algogenesis/harness.py` | Scoring: `score`, `run_suite`, `evaluate_code`, AOCC, train/test instances |
