@@ -56,6 +56,7 @@ The harness measures it the same way whatever its source. See [INTERFACE.md](INT
 | `scripts/demo.py` | Two-minute end-to-end demo; `--fake` runs offline |
 | `scripts/make_paper_assets.py` | Every statistic, table and figure for the paper, from the saved test-phase results |
 | `scripts/make_site.py` | Builds the explainer page `site/index.html` from `site/template.html` and the saved results |
+| `scripts/analyze_runs.py` | Run analysis of the LLM logs: search progress, failures, cost and program families ([data/run_analysis/summary.md](data/run_analysis/summary.md)) |
 | `tests/` | Harness, BBOB, report and exploit-canary tests |
 | `data/` | Logs and best programs from the LLM runs (see [data/README.md](data/README.md)) |
 
@@ -149,7 +150,7 @@ The page is generated, so don't edit `index.html` by hand. Edit `site/template.h
 - [x] BBOB suite; training fitness frozen
 - [x] LLM client, (1+1) loop and no-feedback control, run on GitHub Actions (Pratyush)
 - [x] Prompts and run monitoring (Om)
-- [ ] Run analysis (Om)
+- [x] Run analysis (Om): [data/run_analysis/summary.md](data/run_analysis/summary.md)
 - [x] DE, CMA-ES, BIPOP-CMA-ES and random-search baselines (Siddhant)
 - [x] Statistics upgrade; BBOB test phase in 5-D, 10-D and 20-D (Siddhant)
 - [x] Paper assets script and explainer page

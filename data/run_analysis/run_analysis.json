@@ -1,0 +1,168 @@
+{
+ "gpt-oss-120b/A": {
+  "label": "gpt-oss loop (A)",
+  "runs": 5,
+  "mean_best_at_call": {
+   "5": 0.3453,
+   "10": 0.3769,
+   "25": 0.3909,
+   "50": 0.4923
+  },
+  "call_of_final_best": [
+   46,
+   41,
+   48,
+   27,
+   48
+  ],
+  "median_call_of_final_best": 46.0,
+  "improvements_per_run": [
+   9,
+   5,
+   7,
+   6,
+   9
+  ],
+  "error_rate_calls_1_25": 0.12,
+  "error_rate_calls_26_50": 0.144,
+  "errors": {
+   "none": 217,
+   "timeout": 2,
+   "runtime": 29,
+   "syntax": 1,
+   "policy": 1
+  },
+  "valid_programs": 217,
+  "valid_mean_fitness": 0.2851,
+  "share_valid_above": {
+   "PSO": 0.341,
+   "CMA-ES": 0.014,
+   "BIPOP-CMA-ES": 0.0
+  },
+  "median_tokens_per_call": 3817,
+  "median_latency_s": 0.9,
+  "tokens_per_improvement": 25988,
+  "median_code_lines": 146,
+  "spearman_lines_vs_fitness": {
+   "rho": 0.184,
+   "p": 0.0065
+  },
+  "acceptance_rate": 0.143,
+  "family_share": {
+   "CMA-ES": 0.641,
+   "Differential evolution": 0.714,
+   "Particle swarm": 0.065,
+   "Nelder-Mead / simplex": 0.083,
+   "Restarts": 0.627
+  }
+ },
+ "gpt-oss-120b/B": {
+  "label": "gpt-oss control (B)",
+  "runs": 5,
+  "mean_best_at_call": {
+   "5": 0.3391,
+   "10": 0.351,
+   "25": 0.4269,
+   "50": 0.4657
+  },
+  "call_of_final_best": [
+   24,
+   39,
+   25,
+   48,
+   15
+  ],
+  "median_call_of_final_best": 25.0,
+  "improvements_per_run": [
+   5,
+   4,
+   5,
+   9,
+   5
+  ],
+  "error_rate_calls_1_25": 0.088,
+  "error_rate_calls_26_50": 0.12,
+  "errors": {
+   "none": 224,
+   "runtime": 24,
+   "policy": 2
+  },
+  "valid_programs": 224,
+  "valid_mean_fitness": 0.2325,
+  "share_valid_above": {
+   "PSO": 0.165,
+   "CMA-ES": 0.0,
+   "BIPOP-CMA-ES": 0.0
+  },
+  "median_tokens_per_call": 1429,
+  "median_latency_s": 0.7,
+  "tokens_per_improvement": 12831,
+  "median_code_lines": 91,
+  "spearman_lines_vs_fitness": {
+   "rho": 0.13,
+   "p": 0.0521
+  },
+  "acceptance_rate": null,
+  "family_share": {
+   "CMA-ES": 0.071,
+   "Differential evolution": 0.504,
+   "Particle swarm": 0.022,
+   "Nelder-Mead / simplex": 0.018,
+   "Restarts": 0.183
+  }
+ },
+ "qwen-3.8-27b/A": {
+  "label": "Qwen loop (A)",
+  "runs": 4,
+  "mean_best_at_call": {
+   "5": 0.3334,
+   "10": 0.371,
+   "25": 0.4315,
+   "50": 0.4913
+  },
+  "call_of_final_best": [
+   46,
+   43,
+   34,
+   19
+  ],
+  "median_call_of_final_best": 38.5,
+  "improvements_per_run": [
+   4,
+   12,
+   5,
+   7
+  ],
+  "error_rate_calls_1_25": 0.33,
+  "error_rate_calls_26_50": 0.314,
+  "errors": {
+   "none": 126,
+   "syntax": 32,
+   "runtime": 17,
+   "timeout": 11
+  },
+  "valid_programs": 126,
+  "valid_mean_fitness": 0.3383,
+  "share_valid_above": {
+   "PSO": 0.516,
+   "CMA-ES": 0.008,
+   "BIPOP-CMA-ES": 0.0
+  },
+  "median_tokens_per_call": 17533,
+  "median_latency_s": 7.5,
+  "tokens_per_improvement": 111539,
+  "median_code_lines": 182,
+  "spearman_lines_vs_fitness": {
+   "rho": 0.032,
+   "p": 0.7256
+  },
+  "acceptance_rate": 0.159,
+  "family_share": {
+   "CMA-ES": 0.984,
+   "Differential evolution": 0.071,
+   "Particle swarm": 0.016,
+   "Nelder-Mead / simplex": 0.0,
+   "Restarts": 0.984
+  }
+ }
+}
